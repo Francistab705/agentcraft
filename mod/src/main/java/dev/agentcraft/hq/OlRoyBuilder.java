@@ -2,6 +2,7 @@ package dev.agentcraft.hq;
 
 import dev.agentcraft.AgentCraft;
 import dev.agentcraft.command.AgentCraftCommands;
+import dev.agentcraft.layout.Anchors;
 import dev.agentcraft.world.HqWorld;
 import java.util.Locale;
 import net.minecraft.commands.Commands;
@@ -23,8 +24,27 @@ import net.minecraft.world.level.block.state.BlockState;
  * so it has its own command, {@code /agentcraft olroy}, and leaves the studio's saved plan alone.
  * Idempotent: running it twice gives the same world. Source of the numbers: ol-roy/notes.md.
  */
-final class OlRoyBuilder {
-	private OlRoyBuilder() {
+final class OlRoyBuilder implements HqBuilder {
+	static final String ID = "olroy";
+
+	@Override
+	public String id() {
+		return ID;
+	}
+
+	@Override
+	public String description() {
+		return "SBC HQ in the Ol'Roy replica: studio west wing, garden court, cafe and game corner by the lake";
+	}
+
+	@Override
+	public void build(ServerLevel level, Anchors.Builder anchors) {
+		build(level, anchors, Options.DEFAULT);
+	}
+
+	@Override
+	public String build(ServerLevel level, Anchors.Builder anchors, Options options) {
+		return buildWorld(level, anchors);
 	}
 
 	/** Footprint outline in blocks: x east, y north (from the south-west corner), clockwise from the NW corner. */
@@ -81,6 +101,7 @@ final class OlRoyBuilder {
 	private static final BlockState GLASS = Blocks.GLASS_PANE.defaultBlockState();
 
 	static void init() {
+		HqBuilders.register(new OlRoyBuilder());
 		AgentCraftCommands.sub(root -> root.then(Commands.literal("olroy").then(Commands.literal("survey").executes(ctx -> {
 			survey(ctx.getSource().getLevel());
 			ctx.getSource().sendSuccess(() -> Component.literal("Terrain survey written to the game log"), false);
@@ -91,17 +112,16 @@ final class OlRoyBuilder {
 				source.sendFailure(Component.literal("/agentcraft olroy only builds in the \"" + HqWorld.LEVEL_NAME + "\" world"));
 				return 0;
 			}
-			String report;
 			try {
-				report = build(source.getLevel());
+				Anchors.Layout layout = HqFeature.buildAndPublish(source.getLevel(), new OlRoyBuilder());
+				source.sendSuccess(() -> Component.literal("Built SBC HQ (Ol'Roy) at x " + OX + "..." + (OX + W - 1) + ", z " + OZ + "..." + (OZ + D - 1)
+					+ ": " + layout.anchors().size() + " anchors. " + HqFeature.lastReport()), true);
+				return layout.anchors().size();
 			} catch (RuntimeException e) {
 				AgentCraft.LOGGER.error("Ol'Roy build failed", e);
 				source.sendFailure(Component.literal("Ol'Roy build failed: " + e));
 				return 0;
 			}
-			source.sendSuccess(() -> Component.literal("Built Ol'Roy at x " + OX + "..." + (OX + W - 1) + ", z " + OZ + "..." + (OZ + D - 1)
-				+ ": " + report), true);
-			return 1;
 		})));
 	}
 
@@ -143,7 +163,7 @@ final class OlRoyBuilder {
 	private static final BlockState GRASS = Blocks.GRASS_BLOCK.defaultBlockState();
 	private static final BlockState WATER = Blocks.WATER.defaultBlockState();
 
-	static String build(ServerLevel level) {
+	static String buildWorld(ServerLevel level, Anchors.Builder anchors) {
 		long t0 = System.nanoTime();
 		boolean[][] in = new boolean[D][W];
 		for (int y = 0; y < D; y++) {
@@ -229,7 +249,7 @@ final class OlRoyBuilder {
 				}
 			}
 		}
-		interior(p, in);
+		interior(p, in, anchors);
 		details(p, in, roofY);
 		p.settleGrass();
 		Plan.Stats st = p.apply(level, null, true);
@@ -264,8 +284,8 @@ final class OlRoyBuilder {
 	}
 
 	/** First-floor interior: see {@link OlRoyInterior}. */
-	private static void interior(Plan p, boolean[][] in) {
-		new OlRoyInterior(p, in).build();
+	private static void interior(Plan p, boolean[][] in, Anchors.Builder anchors) {
+		new OlRoyInterior(p, in, anchors).build();
 	}
 
 	static BlockState PARQUET() {
