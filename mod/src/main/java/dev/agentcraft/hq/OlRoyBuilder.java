@@ -65,8 +65,10 @@ final class OlRoyBuilder {
 	private static final int FLOORS = 4;
 	/** Bay spacing of the brick piers, in blocks. */
 	private static final int BAY = 4;
-	/** The roof terrace: the top floor's west end, cx 0..TERRACE for the full depth, is left open to the west and south. */
+	/** The roof terrace: the top floor's protruding west section (cx 0..TERRACE, cy 0..TERRACE_BACK) is left open to the west and south. */
 	private static final int TERRACE = 11;
+	/** Last footprint row of the terrace: the section that sticks out west ends at the step in the wall after row 26. */
+	private static final int TERRACE_BACK = 26;
 	private static final BlockState BRACE = Blocks.IRON_BARS.defaultBlockState();
 	private static final BlockState SPRUCE = Blocks.SPRUCE_PLANKS.defaultBlockState();
 
@@ -193,16 +195,18 @@ final class OlRoyBuilder {
 					int base = GROUND + f * FLOOR_H;
 					p.set(wx, base, wz, PLATE);
 					boolean top = f == FLOORS - 1;
-					boolean innerV = top && cx == TERRACE + 1;
-					if (innerV) {
-						// the inner wall behind the terrace, over its whole depth
-						boolean innerPier = cy % BAY == 0;
+					boolean innerV = top && cx == TERRACE + 1 && cy <= TERRACE_BACK + 1;
+					boolean innerH = top && cy == TERRACE_BACK + 1 && cx <= TERRACE + 1;
+					if (innerV || innerH) {
+						// the glass wall closing the terrace on its east and north sides
+						boolean innerPier = (innerV && cy % BAY == 0) || (innerH && cx % BAY == 0);
 						for (int dy = 1; dy < FLOOR_H; dy++) {
 							p.set(wx, base + dy, wz, innerPier ? BRICK : GLASS);
 						}
 					}
-					if (!wall && !innerV) {
-						if (top && cx <= TERRACE) {
+					boolean terraceCell = top && cx <= TERRACE && cy <= TERRACE_BACK;
+					if (!wall && !innerV && !innerH) {
+						if (terraceCell) {
 							p.set(wx, base + FLOOR_H - 1, wz, SPRUCE);
 						} else if (cx % 5 == 2 && cy % 5 == 2) {
 							p.set(wx, base + FLOOR_H - 1, wz, St.light(13));
@@ -211,9 +215,10 @@ final class OlRoyBuilder {
 					if (!wall) {
 						continue;
 					}
-					boolean cut = top && cx <= TERRACE && (westFace || southFace);
+					boolean cut = terraceCell && (westFace || southFace);
+					boolean backCorner = cut && out(in, cx, cy + 1);
 					for (int dy = 1; dy < FLOOR_H; dy++) {
-						p.set(wx, base + dy, wz, cut ? terraceEdge(southFace ? cx : cy, dy) : pier ? BRICK : facade(f, dy));
+						p.set(wx, base + dy, wz, cut ? (backCorner ? GREY : terraceEdge(southFace ? cx : cy, dy)) : pier ? BRICK : facade(f, dy));
 					}
 				}
 				p.set(wx, roofY, wz, PLATE);
