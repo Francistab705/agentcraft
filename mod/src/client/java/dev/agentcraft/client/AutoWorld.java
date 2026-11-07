@@ -70,6 +70,9 @@ public final class AutoWorld {
 		});
 	}
 
+	/** false = vanilla overworld around the studio, true = the original superflat meadow. */
+	private static final boolean FLAT_WORLD = false;
+
 	public static void openOrCreate(Minecraft mc) {
 		try {
 			if (mc.getLevelSource().levelExists(HqWorld.LEVEL_NAME)) {
@@ -96,6 +99,10 @@ public final class AutoWorld {
 
 	/** Normal dimensions, with the overworld replaced by a flat plains meadow (grass top at y=64). */
 	private static WorldDimensions meadowDimensions(HolderLookup.Provider registries) {
+		if (!FLAT_WORLD) {
+			// Vanilla terrain everywhere; the studio's site box is still rebuilt by HqFeature around 0,0.
+			return WorldPresets.createNormalWorldDimensions(registries);
+		}
 		Holder<Biome> plains = registries.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS);
 		FlatLevelGeneratorSettings base = new FlatLevelGeneratorSettings(Optional.of(HolderSet.empty()), plains, List.of());
 		// y=-64 bedrock, stone up to 60, dirt 61..63, grass 64.
