@@ -297,9 +297,10 @@ final class OlRoyInterior {
 				(float) Math.toDegrees(Math.atan2(-dx, dz)), 0);
 		}
 
-		// task wall along the north wall: a 7 x 3 board over a trim row, facing the hall
-		box(30, 50, 46, 50, 1, 4, b(Blocks.DEEPSLATE_TILES));
-		for (int cx = 35; cx <= 41; cx++) {
+		// task wall along the north wall: a 15 x 3 board over a trim row, facing the hall (wide, so many
+		// more task cards are readable at once)
+		box(29, 50, 47, 50, 1, 4, b(Blocks.DEEPSLATE_TILES));
+		for (int cx = 31; cx <= 45; cx++) {
 			put(cx, 1, 50, ModBlocks.WALNUT_TRIM.defaultBlockState());
 			for (int dy = 2; dy <= 4; dy++) {
 				put(cx, dy, 50, ModBlocks.TASK_BOARD.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH));

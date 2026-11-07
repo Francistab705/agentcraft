@@ -5,6 +5,31 @@ import { truncate } from '../util/text.js';
 import { userName } from '../user.js';
 import { isPrBranch, pullBriefs, type PullRequest } from '../pulls.js';
 
+/**
+ * Teaching mode (on by default in this fork; AGENTCRAFT_TEACHING=0 turns it off): the team explains
+ * itself in plain English, and Marlow gets the plan approved before any task is created.
+ */
+export function teachingOn(): boolean {
+  const v = (process.env.AGENTCRAFT_TEACHING ?? '').trim().toLowerCase();
+  return !['0', 'false', 'off', 'no'].includes(v);
+}
+
+function leadTeaching(): string {
+  if (!teachingOn()) return '';
+  const u = userName();
+  return `
+- TEACHING MODE: ${u} is learning how software gets built and is not a programmer. Whenever you speak to them (plan briefing, questions, merge summaries) write plain English: lead with what and why in everyday words, explain any technical term in a few words the first time you use it, and say what to look at and what the risk is. Short paragraphs or bullets, about 12 lines at most. Never paste code; describe what it does.
+- PLAN REVIEW FIRST: after you write the plan and BEFORE you create any task, call ask_user with a plain-English briefing: (1) what we are building and why, (2) the steps in order, one line each, saying who does each and why in that order, (3) what could go wrong or what you are unsure about, (4) what you will ask ${u} to approve later. Give the options "Looks good, start", "Explain more", "Change the plan". If they ask for more or for a change, answer or revise the plan and ask again. Create tasks only after "Looks good, start".
+- When you call request_merge, write the summary for ${u} in this shape: What it does (1-2 plain sentences). Why it matters. How it was checked (the tests). Risk (low, medium or high, and why). What to look at if they want to dig in.`;
+}
+
+function workerTeaching(): string {
+  if (!teachingOn()) return '';
+  const u = userName();
+  return `
+- TEACHING MODE: ${u} is learning and is not a programmer. Whenever you ask_user or write a task summary, use plain English: what you need and why, what each option means in everyday terms, and what happens if they choose wrong. Explain technical terms briefly. About 10 lines at most. No code.`;
+}
+
 export function leadSystemPrompt(fm: Foreman, workers: string[]): string {
   const team = workers.map((w) => `${fm.nameOf(w)} (id "${w}")`).join(', ');
   return `
@@ -18,7 +43,7 @@ Rules
 - Create tasks with create_task: each small enough for one worker in one branch, with concrete acceptance criteria in the description, deps by task id, and a suggested assignee. Prefer 2-6 tasks.
 - Plan for parallel work: your workers run at the same time, each in its own branch. Split by feature (not by layer) and give each task its own new files where you can (its own module and test file). Add a dep only when a task needs code another task writes. Small additions to the same shared file (a new case in a switch, a line in the help text, an export) do NOT need a dep: if two such merges conflict, the Foreman sends the later branch back to its worker to merge the base branch and resolve it. Serialize only tasks that rewrite the same code. A worker's branch starts from the current base branch when it begins (dependencies already merged); never tell workers to fetch, pull or rebase (there is no remote).
 - Use ask_user only for product/priority decisions you cannot reasonably infer. One short question, a few options, recommended option first.
-- Never push, publish or deploy. Code merges only when ${userName()} approves a merge decision.
+- Never push, publish or deploy. Code merges only when ${userName()} approves a merge decision.${leadTeaching()}
 - Review requests: you get the diff and the test result. If the work meets the task, call request_merge(task_id, summary). Otherwise call update_task(task_id, status "doing", summary: the concrete changes needed); the worker gets your feedback.
 - Talk to workers with send_message (short). End your turn as soon as the current job is done.
 `.trim();
@@ -35,7 +60,7 @@ Your branch started from the current local ${wt.base}, which already includes ev
 How to work
 - Read the task and the relevant code, make the change, add or adjust tests, run the test suite.
 - Use report_status at milestones (one short line), send_message to coordinate with teammates or Marlow.
-- Decide technical details yourself. Call ask_user only for something genuinely ${userName()}'s (product choice, credentials, scope).
+- Decide technical details yourself. Call ask_user only for something genuinely ${userName()}'s (product choice, credentials, scope).${workerTeaching()}
 - Never git push, never install global tools, never change files outside your worktree. Committing is optional (the Foreman commits your work when ${userName()} approves the merge).
 - Stay on your branch in this worktree: do not check out other branches, edit .git, or point git elsewhere (GIT_DIR and friends); those need ${userName()}'s permission. Your commits are made as AgentCraft ${fm.nameOf(agentId)} and are never signed (no -S).
 - When done: update_task(task_id, status "review", summary: what changed + how you tested). If you cannot finish: update_task(status "blocked", blocked_reason). Then end your turn.
@@ -71,10 +96,16 @@ For pull requests:
 "${goal.text}"
 
 Repository: ${repoPath} (base branch ${branch}). Explore it read-only (Glob/Grep to find files, Read for a file - Read cannot open a directory), then:
-1. write_memory the plan (title "Plan: ...", scope shared)
+${teachingOn()
+    ? `1. write_memory the plan (title "Plan: ...", scope shared)
+2. ask_user: the plain-English plan briefing described in your rules, and WAIT for ${userName()}'s answer. Do not create tasks yet. Revise and ask again if they want changes or more explanation.
+3. only after "Looks good, start": create_task for each task (deps + assignee)
+4. send_message to "all" with a two-line briefing
+5. end your turn.`
+    : `1. write_memory the plan (title "Plan: ...", scope shared)
 2. create_task for each task (deps + assignee)
 3. send_message to "all" with a two-line briefing
-4. end your turn.
+4. end your turn.`}
 ${prs}Current task board:
 ${boardSummary(fm, goal.id)}`;
 }
@@ -124,7 +155,7 @@ ${ci && !ci.pass ? `\nTest output (tail):\n${ci.output}\n` : ''}
 Diff vs base (${stats.files} files, +${stats.additions} -${stats.deletions}):
 ${diffText}
 
-Decide now: request_merge("${task.id}", summary for ${userName()}) if it meets the task, or update_task("${task.id}", status "doing", summary: the concrete changes needed). Then end your turn.`;
+Decide now: request_merge("${task.id}", summary for ${userName()}${teachingOn() ? ', in plain English: what it does, why it matters, how it was checked, the risk' : ''}) if it meets the task, or update_task("${task.id}", status "doing", summary: the concrete changes needed). Then end your turn.`;
 }
 
 export const RESUME_PROMPT =
