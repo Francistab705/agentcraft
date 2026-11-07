@@ -48,6 +48,9 @@ public class MonitorRenderer extends StationRenderer<MonitorBlockEntity, Monitor
 		/** this panel is the HQ usage board (binding "usage"), not an agent's screen */
 		boolean usageBoard;
 		@Nullable UsageSummary usage;
+		/** this panel is the HQ summary board (binding "summary") */
+		boolean summaryBoard;
+		@Nullable ForemanState summaryState;
 		@Nullable ScreenStyle usageStyle;
 		@Nullable MonitorScreen screen;
 		float shift;
@@ -86,6 +89,14 @@ public class MonitorRenderer extends StationRenderer<MonitorBlockEntity, Monitor
 		long now = System.nanoTime();
 		ForemanState fs = Foreman.state();
 		String agent = MonitorFeature.resolveAgent(be, s.binding, s.facing, s.panelWidth, s.panelHeight);
+		s.summaryBoard = "summary".equals(agent);
+		if (s.summaryBoard) {
+			s.summaryState = fs != null && fs.hasData() ? fs : null;
+			s.usageStyle = MonitorFeature.styleFor(be.getBlockPos());
+			s.usageBoard = false;
+			s.worldLight = s.lightCoords;
+			return;
+		}
 		s.usageBoard = "usage".equals(agent);
 		if (s.usageBoard) {
 			s.usage = fs != null && fs.status() != null ? fs.status().usage() : null;
@@ -114,6 +125,15 @@ public class MonitorRenderer extends StationRenderer<MonitorBlockEntity, Monitor
 
 	@Override
 	public void submit(State s, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+		if (s.panelOrigin && s.summaryBoard && s.usageStyle != null) {
+			int ppb = density(s.panelWidth, s.panelHeight);
+			poseStack.pushPose();
+			toFace(poseStack, s.facing, SCREEN_DEPTH, ppb);
+			poseStack.translate(0, -(s.panelHeight - 1) * ppb, 0);
+			SummaryPanel.draw(poseStack, collector, s.usageStyle, ppb, s.panelWidth, s.panelHeight, s.summaryState, WorldUi.uiLight());
+			poseStack.popPose();
+			return;
+		}
 		if (s.panelOrigin && s.usageBoard && s.usageStyle != null) {
 			int ppb = density(s.panelWidth, s.panelHeight);
 			poseStack.pushPose();

@@ -298,17 +298,23 @@ final class OlRoyInterior {
 				(float) Math.toDegrees(Math.atan2(-dx, dz)), 0);
 		}
 
-		// task wall along the north wall: a 15 x 3 board over a trim row, facing the hall (wide, so many
-		// more task cards are readable at once)
+		// the north wall holds two boards side by side, 8 blocks each: the task board (Todo / Doing / Review /
+		// Done) and, to its right, the summary board that reads out what was done in plain English
 		box(29, 50, 47, 50, 1, 4, b(Blocks.DEEPSLATE_TILES));
-		for (int cx = 31; cx <= 45; cx++) {
+		BlockState summary = ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH).setValue(MonitorBlock.LIT, true);
+		for (int cx = 31; cx <= 46; cx++) {
 			put(cx, 1, 50, ModBlocks.WALNUT_TRIM.defaultBlockState());
 			for (int dy = 2; dy <= 4; dy++) {
-				put(cx, dy, 50, ModBlocks.TASK_BOARD.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH));
+				if (cx <= 38) {
+					put(cx, dy, 50, ModBlocks.TASK_BOARD.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH));
+				} else {
+					put(cx, dy, 50, summary);
+					bind(cx, dy, 50, "summary");
+				}
 			}
 			put(cx, 4, 49, St.light(15));
 		}
-		a.put(AnchorNames.TASK_WALL, wx(38.5), G + 3.5, rz(50) + 0.125 + 0.002, 0, 0);
+		a.put(AnchorNames.TASK_WALL, wx(35.0), G + 3.5, rz(50) + 0.125 + 0.002, 0, 0);
 	}
 
 	/**
