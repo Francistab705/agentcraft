@@ -169,7 +169,7 @@ final class OlRoyInterior {
 		put(43, 2, 6, b(Blocks.LANTERN));
 	}
 
-	/** Six agent desks in two rows with monitors, plus a larger L-shaped desk for the user. */
+	/** Six agent desks in two rows with monitors facing north, plus a larger L-shaped desk for the user. */
 	private void deskPod() {
 		floor(3, 15, 26, 26, b(Blocks.SPRUCE_PLANKS));
 		BlockState top = St.slab(Blocks.DARK_OAK_SLAB, true);
@@ -183,20 +183,22 @@ final class OlRoyInterior {
 				for (int x = cx; x <= cx + 2; x++) {
 					put(x, 1, cy, top);
 					for (int dy = 2; dy <= 3; dy++) {
-						put(x, dy, cy, ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH).setValue(MonitorBlock.LIT, true));
+						put(x, dy, cy, ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.NORTH).setValue(MonitorBlock.LIT, true));
 						bind(x, dy, cy, id);
 					}
 				}
 				put(cx + 1, 4, cy, lamp(LampStatus.IDLE));
 				bind(cx + 1, 4, cy, "agent:" + id);
-				// the chair is the desk spot: the agent sits on it at desk_<id>, looking north at the monitor
-				put(cx + 1, 1, cy - 1, seat(Blocks.DARK_OAK_STAIRS, Direction.NORTH));
+				// Screens face north, toward the task board and the hall, so the player walking up from
+				// there reads each screen over the agent's shoulder. The agent sits on the chair north of
+				// the desk (desk_<id>), looking south at the monitor.
+				put(cx + 1, 1, cy + 1, seat(Blocks.DARK_OAK_STAIRS, Direction.SOUTH));
 				double sx = wx(cx + 1.5);
-				double sz = rz(cy) + 1.5;
-				a.put(AnchorNames.desk(id), sx, FEET, sz, 180, 0);
-				a.put("seat_" + id, sx, FEET, sz, 180, 0);
-				a.put(AnchorNames.monitor(id), sx, FEET + 2.0, rz(cy) + 0.25 + 0.002, 0, 0);
-				a.cameraLookAt("desk_" + id, sx + 2.0, FEET + 2.2, rz(cy) + 3.8, sx - 0.3, FEET + 1.8, rz(cy) + 0.25);
+				double sz = rz(cy) - 0.5;
+				a.put(AnchorNames.desk(id), sx, FEET, sz, 0, 0);
+				a.put("seat_" + id, sx, FEET, sz, 0, 0);
+				a.put(AnchorNames.monitor(id), sx, FEET + 2.0, rz(cy) + 0.75 - 0.002, 180, 0);
+				a.cameraLookAt("desk_" + id, sx - 2.0, FEET + 2.2, rz(cy) - 3.8, sx + 0.3, FEET + 1.8, rz(cy) + 0.75);
 				put(cx + 3, 2, cy, b(Blocks.POTTED_FERN));
 			}
 		}
