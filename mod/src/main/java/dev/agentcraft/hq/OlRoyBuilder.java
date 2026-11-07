@@ -6,9 +6,11 @@ import dev.agentcraft.world.HqWorld;
 import java.util.Locale;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -159,7 +161,7 @@ final class OlRoyBuilder {
 				if (w <= 0.001 || (water && w < 1)) {
 					// natural terrain (and natural water) is left exactly as the world has it
 					for (int y = minY; y <= maxY; y++) {
-						p.set(x, y, z, level.getBlockState(new net.minecraft.core.BlockPos(x, y, z)));
+						p.set(x, y, z, level.getBlockState(new BlockPos(x, y, z)));
 					}
 					continue;
 				}
@@ -199,6 +201,12 @@ final class OlRoyBuilder {
 		}
 		p.settleGrass();
 		Plan.Stats st = p.apply(level, null, true);
+		// the plan sets water without waking the fluid engine: tick the basin so it spills over the lip
+		for (int x = BX - 1; x <= BX + 1; x++) {
+			for (int z = BZ - 4; z <= BZ + 2; z++) {
+				level.scheduleTick(new BlockPos(x, BLUFF_TOP, z), Fluids.WATER, 5);
+			}
+		}
 		AgentCraft.LOGGER.info("Ol'Roy: planned and applied {} cells ({} changed, {} connections) in {} ms", st.cells(), st.changed(), st.connected(),
 			(System.nanoTime() - t0) / 1_000_000);
 		return String.format(Locale.ROOT, "%d blocks updated", st.changed() + st.connected());
