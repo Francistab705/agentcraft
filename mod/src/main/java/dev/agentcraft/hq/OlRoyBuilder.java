@@ -65,9 +65,10 @@ final class OlRoyBuilder {
 	private static final int FLOORS = 4;
 	/** Bay spacing of the brick piers, in blocks. */
 	private static final int BAY = 4;
-	/** The roof terrace: the top floor's south-west corner, cx and cy 0..TERRACE, is cut back and left open. */
+	/** The roof terrace: the top floor's west end, cx 0..TERRACE for the full depth, is left open to the west and south. */
 	private static final int TERRACE = 11;
 	private static final BlockState BRACE = Blocks.IRON_BARS.defaultBlockState();
+	private static final BlockState SPRUCE = Blocks.SPRUCE_PLANKS.defaultBlockState();
 
 	private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 	private static final BlockState PLATE = Blocks.CONCRETE.pick(DyeColor.LIGHT_GRAY).defaultBlockState();
@@ -185,25 +186,34 @@ final class OlRoyBuilder {
 				boolean nsFace = out(in, cx, cy + 1) || out(in, cx, cy - 1);
 				boolean ewFace = out(in, cx + 1, cy) || out(in, cx - 1, cy);
 				boolean wall = nsFace || ewFace;
+				boolean westFace = out(in, cx - 1, cy);
+				boolean southFace = out(in, cx, cy - 1);
 				boolean pier = wall && ((nsFace && ewFace) || (nsFace && cx % BAY == 0) || (ewFace && cy % BAY == 0));
 				for (int f = 0; f < FLOORS; f++) {
 					int base = GROUND + f * FLOOR_H;
 					p.set(wx, base, wz, PLATE);
 					boolean top = f == FLOORS - 1;
-					boolean innerV = top && cx == TERRACE + 1 && cy <= TERRACE + 1;
-					boolean innerH = top && cy == TERRACE + 1 && cx <= TERRACE + 1;
-					if (innerV || innerH) {
-						boolean innerPier = (innerV && cy % BAY == 0) || (innerH && cx % BAY == 0);
+					boolean innerV = top && cx == TERRACE + 1;
+					if (innerV) {
+						// the inner wall behind the terrace, over its whole depth
+						boolean innerPier = cy % BAY == 0;
 						for (int dy = 1; dy < FLOOR_H; dy++) {
 							p.set(wx, base + dy, wz, innerPier ? BRICK : GLASS);
+						}
+					}
+					if (!wall && !innerV) {
+						if (top && cx <= TERRACE) {
+							p.set(wx, base + FLOOR_H - 1, wz, SPRUCE);
+						} else if (cx % 5 == 2 && cy % 5 == 2) {
+							p.set(wx, base + FLOOR_H - 1, wz, St.light(13));
 						}
 					}
 					if (!wall) {
 						continue;
 					}
-					boolean cut = top && cx <= TERRACE && cy <= TERRACE;
+					boolean cut = top && cx <= TERRACE && (westFace || southFace);
 					for (int dy = 1; dy < FLOOR_H; dy++) {
-						p.set(wx, base + dy, wz, cut ? terraceEdge(cx, cy, dy) : pier ? BRICK : facade(f, dy));
+						p.set(wx, base + dy, wz, cut ? terraceEdge(southFace ? cx : cy, dy) : pier ? BRICK : facade(f, dy));
 					}
 				}
 				p.set(wx, roofY, wz, PLATE);
@@ -230,11 +240,12 @@ final class OlRoyBuilder {
 	 * The open outer edge of the roof terrace: grey columns every 4 blocks, X-bracing of thin bars
 	 * between them, and a glass guard at floor level.
 	 */
-	private static BlockState terraceEdge(int cx, int cy, int dy) {
-		boolean south = cy == 0;
-		int along = south ? cx : cy;
-		if (along % BAY == 0 || (south && cx == 0) || (cx == 0 && cy == 0)) {
+	private static BlockState terraceEdge(int along, int dy) {
+		if (along % BAY == 0) {
 			return GREY;
+		}
+		if (dy == FLOOR_H - 1) {
+			return SPRUCE;
 		}
 		int j = along % BAY;
 		if (dy == j || dy == BAY - j) {
@@ -254,7 +265,8 @@ final class OlRoyBuilder {
 		// canopy: a flat dark roof 3 blocks deep along the front of the west wing, on columns at its edge
 		for (int cx = 6; cx <= 46; cx++) {
 			for (int k = 1; k <= 3; k++) {
-				p.set(OX + cx, GROUND + 4, OZ + (D - 1) + k, GREY);
+				p.set(OX + cx, GROUND + 4, OZ + (D - 1) + k, SPRUCE);
+				p.set(OX + cx, GROUND + 5, OZ + (D - 1) + k, GREY);
 			}
 		}
 		for (int cx = 6; cx <= 46; cx += 10) {
