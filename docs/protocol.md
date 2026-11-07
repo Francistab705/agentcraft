@@ -187,6 +187,7 @@ Exact option labels: merge decisions use `Merge`, `Request changes`, `Reject`; p
 | `showcase` | boolean | no | sim: holding a static showcase state (`--showcase` or `--showcase late`) |
 | `costUsd` | number | no | claude: estimated spend of this profile (sum over all sessions, survives restarts) |
 | `userName` | string | no | the person the team works for, as the agents address them (UI: "<name> answered") |
+| `usage` | { generatedAt: number, fiveHour: { active: boolean, startedAt: nullable, resetsAt: nullable, costUsd: number, turns: number }, today: { costUsd: number }, week: { since: number, costUsd: number, turns: number }, agents: { id: string, model?: string, fiveHourUsd: number, todayUsd: number, weekUsd: number, weekTurns: number }[], tasks: { key: string, agent: string, costUsd: number }[], lastLimit: nullable, note: string } | no | claude: estimated usage per agent in the current 5-hour window, today and the last 7 days (refreshed every minute) |
 
 ### <a id="agentlogs"></a>AgentLogs
 

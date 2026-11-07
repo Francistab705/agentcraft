@@ -5,6 +5,7 @@ import dev.agentcraft.block.MonitorBlock;
 import dev.agentcraft.block.entity.MonitorBlockEntity;
 import dev.agentcraft.client.foreman.Foreman;
 import dev.agentcraft.client.foreman.ForemanState;
+import dev.agentcraft.client.foreman.Protocol.UsageSummary;
 import dev.agentcraft.client.ui.UiStyle;
 import dev.agentcraft.client.ui.WorldUi;
 import dev.agentcraft.client.world.StationRenderState;
@@ -44,6 +45,10 @@ public class MonitorRenderer extends StationRenderer<MonitorBlockEntity, Monitor
 
 	public static class State extends StationRenderState {
 		public boolean lit;
+		/** this panel is the HQ usage board (binding "usage"), not an agent's screen */
+		boolean usageBoard;
+		@Nullable UsageSummary usage;
+		@Nullable ScreenStyle usageStyle;
 		@Nullable MonitorScreen screen;
 		float shift;
 		boolean stale;
@@ -81,6 +86,13 @@ public class MonitorRenderer extends StationRenderer<MonitorBlockEntity, Monitor
 		long now = System.nanoTime();
 		ForemanState fs = Foreman.state();
 		String agent = MonitorFeature.resolveAgent(be, s.binding, s.facing, s.panelWidth, s.panelHeight);
+		s.usageBoard = "usage".equals(agent);
+		if (s.usageBoard) {
+			s.usage = fs != null && fs.status() != null ? fs.status().usage() : null;
+			s.usageStyle = MonitorFeature.styleFor(be.getBlockPos());
+			s.worldLight = s.lightCoords;
+			return;
+		}
 		ScreenStyle st = MonitorFeature.styleFor(be.getBlockPos());
 		int ppb = density(s.panelWidth, s.panelHeight);
 		MonitorScreen m = MonitorFeature.screen(be.getBlockPos());
@@ -102,6 +114,15 @@ public class MonitorRenderer extends StationRenderer<MonitorBlockEntity, Monitor
 
 	@Override
 	public void submit(State s, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+		if (s.panelOrigin && s.usageBoard && s.usageStyle != null) {
+			int ppb = density(s.panelWidth, s.panelHeight);
+			poseStack.pushPose();
+			toFace(poseStack, s.facing, SCREEN_DEPTH, ppb);
+			poseStack.translate(0, -(s.panelHeight - 1) * ppb, 0);
+			UsagePanel.draw(poseStack, collector, s.usageStyle, ppb, s.panelWidth, s.panelHeight, s.usage, WorldUi.uiLight());
+			poseStack.popPose();
+			return;
+		}
 		MonitorScreen m = s.screen;
 		if (!s.panelOrigin || m == null || m.style == null) {
 			return;

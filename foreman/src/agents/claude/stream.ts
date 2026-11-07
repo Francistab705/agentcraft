@@ -177,6 +177,7 @@ export class StreamMapper {
         if (t === 'rate_limit_event') {
           const info = (msg as { rate_limit_info?: { status?: string; utilization?: number; rateLimitType?: string } }).rate_limit_info;
           if (info) fm.usage.recordLimit({ ts: Date.now(), agent: id, type: info.rateLimitType ?? 'limit', status: info.status ?? '', ...(info.utilization !== undefined ? { utilization: info.utilization } : {}) });
+          if (info) fm.publishUsage();
           if (info?.status === 'rejected') {
             fm.agentLog(id, 'error', `rate limited (${info.rateLimitType ?? 'limit'}); waiting...`);
             fm.setAgent(id, { state: 'blocked', activity: 'rate limited - waiting' });

@@ -211,6 +211,32 @@ export const FeedItem = z.object({
 });
 export type FeedItem = z.infer<typeof FeedItem>;
 
+export const UsageAgent = z.object({
+  id: z.string().describe('agent id'),
+  model: z.string().optional(),
+  fiveHourUsd: z.number().describe('estimated cost in the current 5-hour window'),
+  todayUsd: z.number(),
+  weekUsd: z.number().describe('estimated cost in the last 7 days'),
+  weekTurns: z.number(),
+});
+export const UsageSummary = z.object({
+  generatedAt: z.number().describe('epoch ms'),
+  fiveHour: z.object({
+    active: z.boolean().describe('false when nothing was used in the last 5 hours'),
+    startedAt: z.number().nullable(),
+    resetsAt: z.number().nullable().describe('estimated: 5 hours after the first use of the window'),
+    costUsd: z.number(),
+    turns: z.number(),
+  }),
+  today: z.object({ costUsd: z.number() }),
+  week: z.object({ since: z.number(), costUsd: z.number(), turns: z.number() }).describe('the last 7 days'),
+  agents: z.array(UsageAgent).describe('most used first'),
+  tasks: z.array(z.object({ key: z.string(), agent: z.string(), costUsd: z.number() })).describe('most expensive sessions in the last 7 days'),
+  lastLimit: z.object({ ts: z.number(), agent: z.string(), type: z.string(), status: z.string(), utilization: z.number().optional() }).nullable(),
+  note: z.string().describe('caveat shown next to the numbers: costs are estimates, not plan limits'),
+});
+export type UsageSummary = z.infer<typeof UsageSummary>;
+
 export const ForemanStatus = z.object({
   version: z.string(),
   backend: BackendName,
@@ -221,6 +247,7 @@ export const ForemanStatus = z.object({
   showcase: z.boolean().optional().describe('sim: holding a static showcase state (`--showcase` or `--showcase late`)'),
   costUsd: z.number().optional().describe('claude: estimated spend of this profile (sum over all sessions, survives restarts)'),
   userName: z.string().optional().describe('the person the team works for, as the agents address them (UI: "<name> answered")'),
+  usage: UsageSummary.optional().describe('claude: estimated usage per agent in the current 5-hour window, today and the last 7 days (refreshed every minute)'),
 });
 export type ForemanStatus = z.infer<typeof ForemanStatus>;
 

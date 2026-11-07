@@ -113,6 +113,7 @@ final class OlRoyInterior {
 		deskPod();
 		workshop();
 		missionHall();
+		usageBoard();
 		library();
 		gardenCourt();
 		lounge();
@@ -308,6 +309,24 @@ final class OlRoyInterior {
 			put(cx, 4, 49, St.light(15));
 		}
 		a.put(AnchorNames.TASK_WALL, wx(38.5), G + 3.5, rz(50) + 0.125 + 0.002, 0, 0);
+	}
+
+	/**
+	 * The usage board: a 16 x 3 screen on the east wall of the mission hall, facing west toward the task
+	 * board's side. The monitors are bound to "usage", which makes them draw the Foreman's usage summary
+	 * (current 5-hour window, per agent, last 7 days) instead of an agent's log.
+	 */
+	private void usageBoard() {
+		BlockState wall = b(Blocks.DEEPSLATE_TILES);
+		box(48, 31, 49, 50, 1, 4, wall);
+		BlockState monitor = ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.WEST).setValue(MonitorBlock.LIT, true);
+		for (int cy = 33; cy <= 48; cy++) {
+			put(48, 1, cy, ModBlocks.WALNUT_TRIM.defaultBlockState());
+			for (int dy = 2; dy <= 4; dy++) {
+				put(48, dy, cy, monitor);
+				bind(48, dy, cy, "usage");
+			}
+		}
 	}
 
 	private void library() {

@@ -209,8 +209,35 @@ public final class Protocol {
 		}
 	}
 
+	/** Estimated usage of the Claude team, pushed with the status and refreshed every minute (HQ usage board). */
+	public record UsageSummary(long generatedAt, UsageWindow fiveHour, UsageToday today, UsageWeek week, List<UsageAgent> agents,
+		List<UsageTask> tasks, @Nullable UsageLimit lastLimit, @Nullable String note) {
+		public UsageSummary {
+			agents = agents == null ? List.of() : List.copyOf(agents);
+			tasks = tasks == null ? List.of() : List.copyOf(tasks);
+		}
+	}
+
+	public record UsageWindow(boolean active, @Nullable Long startedAt, @Nullable Long resetsAt, double costUsd, int turns) {
+	}
+
+	public record UsageToday(double costUsd) {
+	}
+
+	public record UsageWeek(long since, double costUsd, int turns) {
+	}
+
+	public record UsageAgent(String id, @Nullable String model, double fiveHourUsd, double todayUsd, double weekUsd, int weekTurns) {
+	}
+
+	public record UsageTask(String key, String agent, double costUsd) {
+	}
+
+	public record UsageLimit(long ts, String agent, String type, String status, @Nullable Double utilization) {
+	}
+
 	public record ForemanStatus(String version, BackendName backend, AuthStatus auth, @Nullable String message, @Nullable String account,
-		@Nullable Double speed, @Nullable Boolean showcase, @Nullable Double costUsd, @Nullable String userName) {
+		@Nullable Double speed, @Nullable Boolean showcase, @Nullable Double costUsd, @Nullable String userName, @Nullable UsageSummary usage) {
 		public ForemanStatus {
 			version = version == null ? "?" : version;
 			backend = backend == null ? BackendName.UNKNOWN : backend;

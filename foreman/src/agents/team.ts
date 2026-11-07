@@ -902,6 +902,7 @@ export class TeamBackend implements Backend {
         slice = delta;
       }
       this.fm.usage.record({ ts: Date.now(), agent: key.split(':')[0] ?? key, key, model, costUsd: slice, turns: stats.numTurns ?? 0 });
+      this.fm.publishUsage();
       s.lastResult = stats.subtype;
     }
     this.fm.store.markDirty();

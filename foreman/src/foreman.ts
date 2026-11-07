@@ -111,6 +111,12 @@ export class Foreman {
     setUserName(opts.config.userName);
     this.status = { version: FOREMAN_VERSION, backend: opts.config.backend, auth: opts.config.backend === 'sim' ? 'ok' : 'unknown', userName: userName() };
     if (opts.config.backend === 'sim') this.status.message = 'Simulated team (sim backend)';
+    if (opts.config.backend !== 'sim') {
+      this.status.usage = this.usage.summary();
+      // the 5-hour window slides with time, so refresh the summary even when nothing is running
+      const usageTimer = setInterval(() => this.publishUsage(), 60_000);
+      usageTimer.unref();
+    }
     this.initRoster();
     this.decisions.onCreated((d) => this.onDecisionCreated(d));
   }
@@ -457,6 +463,12 @@ export class Foreman {
   }
 
   // ---- foreman status -------------------------------------------------------------------------
+
+  /** Push the current usage summary to the clients (the HQ usage board). */
+  publishUsage(): void {
+    if (this.config.backend === 'sim') return;
+    this.setStatus({ usage: this.usage.summary() });
+  }
 
   setStatus(patch: Partial<ForemanStatus>): void {
     const next = { ...this.status, ...patch };
