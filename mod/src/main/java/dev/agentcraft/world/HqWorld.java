@@ -38,11 +38,33 @@ public final class HqWorld {
 				return;
 			}
 			ServerPlayer player = handler.getPlayer();
-			// DevBridge camera shots switch to spectator; normal play should resume in creative.
-			if (player.gameMode() == GameType.SPECTATOR || player.gameMode() == GameType.SURVIVAL) {
-				player.setGameMode(GameType.CREATIVE);
+			// DevBridge camera shots switch to spectator; normal play resumes in the join mode.
+			GameType mode = joinMode();
+			if (mode != null && player.gameMode() != mode) {
+				player.setGameMode(mode);
 			}
 		});
+	}
+
+	/**
+	 * The mode players are put in whenever they join the HQ world: adventure by default (you can walk,
+	 * use stations and open screens but cannot break or place blocks, so the building is safe).
+	 * -Dagentcraft.hq.joinmode=creative|adventure|keep (or AGENTCRAFT_HQ_JOINMODE); "keep" leaves the
+	 * player's own mode alone. Players can still switch with /gamemode during a session.
+	 */
+	private static GameType joinMode() {
+		String v = System.getProperty("agentcraft.hq.joinmode");
+		if (v == null) {
+			v = System.getenv("AGENTCRAFT_HQ_JOINMODE");
+		}
+		if (v == null) {
+			return GameType.ADVENTURE;
+		}
+		return switch (v.trim().toLowerCase(java.util.Locale.ROOT)) {
+			case "creative" -> GameType.CREATIVE;
+			case "keep" -> null;
+			default -> GameType.ADVENTURE;
+		};
 	}
 
 	/** The HQ world: switches players to creative and rewrites game rules, so never a Hardcore world. */
