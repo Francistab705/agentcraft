@@ -21,12 +21,49 @@ public final class Panels {
 	private Panels() {
 	}
 
+	/**
+	 * The paper kit sprites are cream. Windows are drawn dark to match the HQ boards by multiplying those
+	 * sprites with a tint here, in one place; dots, icons, progress fills, rings and the tooltip (already
+	 * dark) are left alone. Set DARK to false for the original paper look.
+	 */
+	private static final boolean DARK = true;
+	private static final int T_WINDOW = 0x4A423B;
+	private static final int T_WELL = 0x3A342E;
+	private static final int T_CONTROL = 0x7A6F66;
+	private static final java.util.Map<Identifier, Integer> DARKEN = java.util.Map.ofEntries(
+		java.util.Map.entry(Kit.PANEL_PAPER, T_WINDOW), java.util.Map.entry(Kit.FRAME_BRASS, T_WINDOW), java.util.Map.entry(Kit.HEADER, T_WINDOW),
+		java.util.Map.entry(Kit.PANEL_INSET, T_WELL), java.util.Map.entry(Kit.DIVIDER, T_WELL), java.util.Map.entry(Kit.PROGRESS_TRACK, T_WELL),
+		java.util.Map.entry(Kit.SCROLL_TRACK, T_WELL), java.util.Map.entry(Kit.TEXT_FIELD, T_WELL), java.util.Map.entry(Kit.TEXT_FIELD_FOCUSED, T_WELL),
+		java.util.Map.entry(Kit.CHECKBOX, T_WELL), java.util.Map.entry(Kit.CHECKBOX_CHECKED, T_WELL),
+		java.util.Map.entry(Kit.PILL, T_CONTROL), java.util.Map.entry(Kit.KEYCAP, T_CONTROL), java.util.Map.entry(Kit.TAB_ACTIVE, T_CONTROL),
+		java.util.Map.entry(Kit.TAB_INACTIVE, T_WELL), java.util.Map.entry(Kit.SCROLL_THUMB, T_CONTROL), java.util.Map.entry(Kit.SCROLL_THUMB_HOVER, 0x9A8E84));
+
+	private static int darkened(Identifier sprite, int argb) {
+		if (!DARK) {
+			return argb;
+		}
+		Integer t = DARKEN.get(sprite);
+		if (t == null) {
+			String path = sprite.getPath();
+			if (!path.startsWith("kit/button")) {
+				return argb;
+			}
+			// buttons: the clay call-to-action stays light enough to read white text on; plain ones get the control tint
+			t = path.contains("disabled") ? 0x504A44 : path.contains("primary") ? 0xD0C4BC : path.contains("hover") || path.contains("pressed") ? 0x9A8E84 : T_CONTROL;
+		}
+		int a = argb >>> 24;
+		int r = ((argb >> 16) & 0xFF) * ((t >> 16) & 0xFF) / 255;
+		int gr = ((argb >> 8) & 0xFF) * ((t >> 8) & 0xFF) / 255;
+		int b = (argb & 0xFF) * (t & 0xFF) / 255;
+		return (a << 24) | (r << 16) | (gr << 8) | b;
+	}
+
 	public static void sprite(GuiGraphicsExtractor g, Identifier sprite, int x, int y, int w, int h) {
-		g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h);
+		g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h, darkened(sprite, 0xFFFFFFFF));
 	}
 
 	public static void sprite(GuiGraphicsExtractor g, Identifier sprite, int x, int y, int w, int h, int argb) {
-		g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h, argb);
+		g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h, darkened(sprite, argb));
 	}
 
 	/** Matte paper window (soft shadow included in the sprite). */

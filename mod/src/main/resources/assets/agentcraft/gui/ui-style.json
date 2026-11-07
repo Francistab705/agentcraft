@@ -50,18 +50,18 @@
     "chip_edge": "#C9BBA3"
   },
   "paper": {
-    "bg": "#F4EFE6",
-    "inset": "#E9E1D3",
-    "text": "#1F1E1D",
-    "muted": "#655E55",
-    "path": "#6C5415",
-    "hunk": "#195E5D",
-    "add_fg": "#455746",
-    "del_fg": "#873C2A",
-    "link": "#874431",
-    "disabled": "#A39B8E",
-    "add_bg": "#D6DDCC",
-    "del_bg": "#F2D5C4"
+    "bg": "#2E2925",
+    "inset": "#26221F",
+    "text": "#EDE5D7",
+    "muted": "#A39B8E",
+    "path": "#D4B17D",
+    "hunk": "#80D2CD",
+    "add_fg": "#B8CBB3",
+    "del_fg": "#F4A585",
+    "link": "#F4A585",
+    "disabled": "#7C746A",
+    "add_bg": "#3A4337",
+    "del_bg": "#4F2D24"
   },
   "status": {
     "idle": "#9C9488",

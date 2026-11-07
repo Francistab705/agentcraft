@@ -79,6 +79,10 @@ public final class UiStyle {
 
 	/** Agent name colour on paper GUIs. Unknown agent: ink. */
 	public static int agentOnLight(String agentId) {
+		// the paper windows are dark now (see Panels), so names use the colour made for dark backgrounds
+		if (true) {
+			return agentOnDark(agentId);
+		}
 		Integer c = COLORS.get("agents." + agentId + ".text_on_light");
 		if (c != null) {
 			return c;
