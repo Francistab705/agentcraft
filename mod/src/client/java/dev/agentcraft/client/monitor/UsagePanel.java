@@ -13,11 +13,12 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The HQ usage board: a wide monitor panel bound to "usage". Three columns: the current 5-hour
- * window (cost, time left, a bar of how much of the window has passed) and today; cost per agent over
- * the last 7 days with a bar each; and the last 7 days in total with the costliest jobs. A footer
- * says the figures are estimates, not plan limits, and shows Claude's last limit message if any.
- * Pure drawing: everything comes from the {@link UsageSummary} the Foreman pushes with its status.
+ * The HQ usage board: a monitor panel bound to "usage", the same size and style as the task and
+ * summary boards (8 x 4 blocks). Left column: the current 5-hour window (cost, time left, a bar of
+ * how much of the window has passed), today, and the last 7 days. Right column: cost per agent over
+ * the last 7 days with a bar each, then the costliest jobs. A footer says the figures are estimates,
+ * not plan limits, and shows Claude's last limit message if any. Pure drawing: everything comes from
+ * the {@link UsageSummary} the Foreman pushes with its status.
  */
 final class UsagePanel {
 	private static final float FIVE_HOURS_MS = 5 * 3600_000f;
@@ -40,29 +41,27 @@ final class UsagePanel {
 
 		float top = titleBottom + 10;
 		float gap = 26;
-		float colW = (x1 - x0 - 2 * gap);
-		float aW = colW * 0.27f;
-		float bW = colW * 0.45f;
-		float cW = colW * 0.28f;
+		float colW = x1 - x0 - gap;
+		float aW = colW * 0.36f;
+		float bW = colW * 0.64f;
 		float ax = x0;
 		float bx = ax + aW + gap;
-		float cx = bx + bW + gap;
 		float footerY = h - b - 20;
 
 		if (u == null) {
 			rects.submit(ps, c);
 			ps.pushPose();
 			ps.translate(0, 0, MonitorRenderer.Z_TEXT);
-			text(ps, c, "SBC HQ USAGE", x0, b + 8, 2.4f, st.text(), light);
-			text(ps, c, "Waiting for usage data. It appears when the real Claude team is running.", x0, top + 30, 1.5f, st.muted(), light);
+			text(ps, c, "SBC HQ USAGE", x0, b + 8, 2.6f, st.text(), light);
+			text(ps, c, "Waiting for usage data.", x0, top + 30, 1.9f, st.muted(), light);
+			text(ps, c, "It appears when the real Claude team is running.", x0, top + 56, 1.5f, st.muted(), light);
 			ps.popPose();
 			return;
 		}
 
-		// ---- 5-hour window bar and per-agent bars (rectangles first, then all text on top)
 		var win = u.fiveHour();
 		long now = u.generatedAt();
-		float barY = top + 90;
+		float barY = top + 94;
 		rects.add(ax, barY, ax + aW, barY + 10, DisplayDraw.Z_STEP, st.rule(), light);
 		if (win.active() && win.startedAt() != null && win.resetsAt() != null) {
 			float used = Math.max(0f, Math.min(1f, (now - win.startedAt()) / FIVE_HOURS_MS));
@@ -83,24 +82,29 @@ final class UsagePanel {
 			rects.add(bar0, ry + 4, bar1, ry + 17, DisplayDraw.Z_STEP, st.rule(), light);
 			rects.add(bar0, ry + 4, bar0 + (float) ((bar1 - bar0) * (a.weekUsd() / max)), ry + 17, 2 * DisplayDraw.Z_STEP, st.name(a.id()), light);
 		}
+		float jobsY = top + 24 + 6 * rowH + 6;
+		rects.add(bx, jobsY - 4, bx + bW, jobsY - 3, 2 * DisplayDraw.Z_STEP, st.rule(), light);
 		rects.submit(ps, c);
 
 		ps.pushPose();
 		ps.translate(0, 0, MonitorRenderer.Z_TEXT);
-		text(ps, c, "SBC HQ USAGE", x0, b + 8, 2.4f, st.text(), light);
+		text(ps, c, "SBC HQ USAGE", x0, b + 8, 2.6f, st.text(), light);
 		String right = "estimates, not plan limits";
-		text(ps, c, right, x1 - width(right) * 1.7f, b + 10, 1.7f, st.muted(), light);
+		text(ps, c, right, x1 - width(right) * 1.7f, b + 11, 1.7f, st.muted(), light);
 
-		// column A: current window + today
-		text(ps, c, "CURRENT 5-HOUR WINDOW", ax, top, 1.7f, st.muted(), light);
+		// left column: current window, today, last 7 days
+		text(ps, c, "CURRENT 5-HOUR WINDOW", ax, top, 1.5f, st.muted(), light);
 		text(ps, c, usd(win.costUsd()), ax, top + 22, 4.4f, win.active() ? st.text() : st.muted(), light);
 		String when = win.active() && win.resetsAt() != null ? "resets in " + left(win.resetsAt() - now) : "no activity in the last 5 hours";
-		text(ps, c, when, ax, top + 62, 2.0f, st.muted(), light);
+		text(ps, c, when, ax, top + 64, 2.0f, st.muted(), light);
 		text(ps, c, "TODAY", ax, barY + 22, 1.7f, st.muted(), light);
 		text(ps, c, usd(u.today().costUsd()), ax + 92, barY + 18, 2.6f, st.text(), light);
+		text(ps, c, "LAST 7 DAYS", ax, barY + 54, 1.7f, st.muted(), light);
+		text(ps, c, usd(u.week().costUsd()), ax, barY + 72, 3.4f, st.text(), light);
+		text(ps, c, u.week().turns() + " steps", ax, barY + 104, 1.8f, st.muted(), light);
 
-		// column B: per agent
-		text(ps, c, "PER AGENT, LAST 7 DAYS", bx, top, 1.7f, st.muted(), light);
+		// right column: per agent, then the costliest jobs
+		text(ps, c, "PER AGENT, LAST 7 DAYS", bx, top, 1.5f, st.muted(), light);
 		for (int i = 0; i < rows; i++) {
 			UsageAgent a = agents.get(i);
 			float ry = top + 24 + i * rowH;
@@ -111,29 +115,23 @@ final class UsagePanel {
 		if (rows == 0) {
 			text(ps, c, "No usage recorded yet.", bx, top + 28, 2.0f, st.muted(), light);
 		}
-
-		// column C: week total + costliest jobs
-		text(ps, c, "LAST 7 DAYS", cx, top, 1.7f, st.muted(), light);
-		text(ps, c, usd(u.week().costUsd()), cx, top + 22, 4.4f, st.text(), light);
-		text(ps, c, u.week().turns() + " steps", cx, top + 62, 2.0f, st.muted(), light);
-		text(ps, c, "COSTLIEST JOBS", cx, top + 92, 1.7f, st.muted(), light);
+		text(ps, c, "COSTLIEST JOBS", bx, jobsY, 1.5f, st.muted(), light);
 		List<UsageTask> tasks = u.tasks();
 		for (int i = 0; i < Math.min(3, tasks.size()); i++) {
 			UsageTask t = tasks.get(i);
-			float ty = top + 112 + i * 22;
-			text(ps, c, ellipsize(t.key(), 17), cx, ty, 1.7f, st.text(), light);
+			float ty = jobsY + 20 + i * 22;
+			text(ps, c, ellipsize(t.key(), 24), bx, ty, 1.7f, st.text(), light);
 			String v = usd(t.costUsd());
-			text(ps, c, v, cx + cW - width(v) * 1.7f, ty, 1.7f, st.muted(), light);
+			text(ps, c, v, bx + bW - width(v) * 1.7f, ty, 1.7f, st.muted(), light);
 		}
 
-		// footer
 		String foot = "Estimated cost: what this work would cost on the API. The 5-hour window is estimated from when work started.";
 		if (u.lastLimit() != null) {
 			var l = u.lastLimit();
 			foot = "Claude limit message: " + l.type() + " " + l.status()
 				+ (l.utilization() != null ? " (" + Math.round(l.utilization() * 100) + "% used)" : "") + ".  " + foot;
 		}
-		text(ps, c, ellipsize(foot, 135), x0, footerY, 1.3f, st.muted(), light);
+		text(ps, c, ellipsize(foot, 100), x0, footerY, 1.3f, st.muted(), light);
 		ps.popPose();
 	}
 

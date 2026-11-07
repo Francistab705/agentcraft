@@ -59,6 +59,26 @@ public final class MonitorFeature {
 
 	public static void init() {
 		BlockEntityRenderers.register(ModBlockEntities.MONITOR, ctx -> new MonitorRenderer());
+		// right-click a card on the HQ task board ("tasks" panel): open that task's details, like the original board
+		dev.agentcraft.client.world.StationInteractions.onUse(dev.agentcraft.block.ModBlocks.MONITOR, (player, pos, state, be) -> {
+			if (be == null || !"tasks".equals(be.binding())) {
+				return;
+			}
+			net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+			if (mc.level == null || !(mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult bh) || bh.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
+				return;
+			}
+			BlockPos origin = dev.agentcraft.block.PanelBlock.origin(mc.level, pos, state);
+			TasksPanel.Entry e = TasksPanel.entry(origin);
+			if (e == null) {
+				return;
+			}
+			float[] p = dev.agentcraft.client.taskwall.TaskWallFeature.toBoard(origin, state.getValue(dev.agentcraft.block.PanelBlock.FACING), e.panelH(), e.ppb(), bh.getLocation());
+			String id = TasksPanel.taskAt(origin, p[0], p[1]);
+			if (id != null) {
+				mc.gui.setScreen(new dev.agentcraft.client.taskwall.TaskScreen(id));
+			}
+		});
 		Foreman.addListener(new ForemanListener() {
 			@Override
 			public void onSnapshot(ForemanState st) {

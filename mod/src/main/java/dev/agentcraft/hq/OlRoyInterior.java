@@ -298,27 +298,26 @@ final class OlRoyInterior {
 				(float) Math.toDegrees(Math.atan2(-dx, dz)), 0);
 		}
 
-		// the north wall holds two boards side by side, 8 blocks each: the task board (Todo / Doing / Review /
-		// Done) and, to its right, the summary board that reads out what was done in plain English
+		// the north wall holds two boards side by side, 8 wide and 4 high each, in the same style: the task
+		// board (Todo / Doing / Review / Done) and, to its right, the summary board that reads out what was
+		// done in plain English
 		box(29, 50, 47, 50, 1, 4, b(Blocks.DEEPSLATE_TILES));
-		BlockState summary = ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH).setValue(MonitorBlock.LIT, true);
-		for (int cx = 31; cx <= 46; cx++) {
-			put(cx, 1, 50, ModBlocks.WALNUT_TRIM.defaultBlockState());
-			for (int dy = 2; dy <= 4; dy++) {
-				if (cx <= 38) {
-					put(cx, dy, 50, ModBlocks.TASK_BOARD.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH));
-				} else {
-					put(cx, dy, 50, summary);
-					bind(cx, dy, 50, "summary");
+		BlockState tasks = ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.SOUTH).setValue(MonitorBlock.LIT, true);
+		// cx 39 stays a deepslate pillar: neighbouring monitors would otherwise join into one 16-wide screen
+		for (int cx = 31; cx <= 47; cx++) {
+			if (cx != 39) {
+				for (int dy = 1; dy <= 4; dy++) {
+					put(cx, dy, 50, tasks);
+					bind(cx, dy, 50, cx <= 38 ? "tasks" : "summary");
 				}
 			}
 			put(cx, 4, 49, St.light(15));
 		}
-		a.put(AnchorNames.TASK_WALL, wx(35.0), G + 3.5, rz(50) + 0.125 + 0.002, 0, 0);
+		a.put(AnchorNames.TASK_WALL, wx(35.0), G + 3.0, rz(50) + 0.25 + 0.002, 0, 0);
 	}
 
 	/**
-	 * The usage board: a 16 x 3 screen on the east wall of the mission hall, facing west toward the task
+	 * The usage board: an 8 x 4 screen on the east wall of the mission hall, facing west toward the task
 	 * board's side. The monitors are bound to "usage", which makes them draw the Foreman's usage summary
 	 * (current 5-hour window, per agent, last 7 days) instead of an agent's log.
 	 */
@@ -326,9 +325,8 @@ final class OlRoyInterior {
 		BlockState wall = b(Blocks.DEEPSLATE_TILES);
 		box(48, 31, 49, 50, 1, 4, wall);
 		BlockState monitor = ModBlocks.MONITOR.defaultBlockState().setValue(PanelBlock.FACING, Direction.WEST).setValue(MonitorBlock.LIT, true);
-		for (int cy = 33; cy <= 48; cy++) {
-			put(48, 1, cy, ModBlocks.WALNUT_TRIM.defaultBlockState());
-			for (int dy = 2; dy <= 4; dy++) {
+		for (int cy = 37; cy <= 44; cy++) {
+			for (int dy = 1; dy <= 4; dy++) {
 				put(48, dy, cy, monitor);
 				bind(48, dy, cy, "usage");
 			}

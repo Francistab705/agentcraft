@@ -227,7 +227,7 @@ public final class TaskWallFeature {
 	// ------------------------------------------------------------------ face <-> world mapping
 
 	/** Board pixel of a world point on the panel whose origin (bottom-left block) is {@code origin}. */
-	static float[] toBoard(BlockPos origin, Direction facing, int panelH, int ppb, Vec3 world) {
+	public static float[] toBoard(BlockPos origin, Direction facing, int panelH, int ppb, Vec3 world) {
 		Vector3f l = new Vector3f((float) (world.x - origin.getX() - 0.5), (float) (world.y - origin.getY()), (float) (world.z - origin.getZ() - 0.5));
 		new Quaternionf().rotationY((float) Math.toRadians(StationRenderer.modelRotation(facing))).transform(l);
 		float lx = l.x + 0.5f;
