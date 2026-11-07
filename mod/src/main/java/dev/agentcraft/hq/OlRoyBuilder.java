@@ -229,6 +229,7 @@ final class OlRoyBuilder {
 				}
 			}
 		}
+		interior(p, in);
 		details(p, in, roofY);
 		p.settleGrass();
 		Plan.Stats st = p.apply(level, null, true);
@@ -260,6 +261,61 @@ final class OlRoyBuilder {
 			return BRACE;
 		}
 		return dy == 1 ? GLASS : AIR;
+	}
+
+	/**
+	 * First-floor interior, visual only (no agent anchors yet): a parquet lobby behind the entrance with
+	 * a split reception desk, and rows of desks with chairs across the east wing.
+	 */
+	private static void interior(Plan p, boolean[][] in) {
+		BlockState parquet = StudioHqBuilder.PARQUET;
+		BlockState deskBody = Blocks.DARK_OAK_PLANKS.defaultBlockState();
+		BlockState deskTop = Blocks.DARK_OAK_SLAB.defaultBlockState();
+		BlockState chair = Blocks.SPRUCE_STAIRS.defaultBlockState();
+		int y = GROUND + 1;
+		for (int cy = 1; cy <= 16; cy++) {
+			for (int cx = 14; cx <= 36; cx++) {
+				if (deep(in, cx, cy, 1)) {
+					p.set(OX + cx, GROUND, rowZ(cy), parquet);
+				}
+			}
+		}
+		// reception desk in two halves, leaving the straight path from the entrance (cx 24-26) clear
+		for (int cx = 19; cx <= 31; cx++) {
+			if (cx >= 24 && cx <= 26) {
+				continue;
+			}
+			p.set(OX + cx, y, rowZ(9), deskBody);
+			p.set(OX + cx, y + 1, rowZ(9), deskTop);
+		}
+		int[] rows = {10, 14, 18, 22, 26, 36, 40, 44, 48};
+		for (int cy : rows) {
+			for (int cx = 54; cx <= 86; cx += 4) {
+				if (deep(in, cx, cy, 2) && deep(in, cx + 2, cy, 2) && deep(in, cx + 1, cy + 1, 2)) {
+					for (int k = 0; k < 3; k++) {
+						p.set(OX + cx + k, y, rowZ(cy), deskTop);
+					}
+					p.set(OX + cx + 1, y, rowZ(cy + 1), chair);
+				}
+			}
+		}
+	}
+
+	/** World z of footprint row cy (north is up in the footprint and -z in the world). */
+	private static int rowZ(int cy) {
+		return OZ + (D - 1 - cy);
+	}
+
+	/** True when every cell within r of (cx, cy) is inside the footprint. */
+	private static boolean deep(boolean[][] in, int cx, int cy, int r) {
+		for (int dy = -r; dy <= r; dy++) {
+			for (int dx = -r; dx <= r; dx++) {
+				if (out(in, cx + dx, cy + dy)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/** Entrance door, canopy over the lawn side, and the rooftop mechanical boxes. */
