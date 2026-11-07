@@ -69,6 +69,8 @@ final class OlRoyBuilder {
 	private static final int TERRACE = 11;
 	/** Last footprint row of the terrace: the section that sticks out west ends at the step in the wall after row 26. */
 	private static final int TERRACE_BACK = 26;
+	/** Width of a terrace bay: two of them across the front, each with one big X (as in the photos). */
+	private static final int TERRACE_BAY = 6;
 	private static final BlockState BRACE = Blocks.IRON_BARS.defaultBlockState();
 	private static final BlockState SPRUCE = Blocks.SPRUCE_PLANKS.defaultBlockState();
 
@@ -246,14 +248,15 @@ final class OlRoyBuilder {
 	 * between them, and a glass guard at floor level.
 	 */
 	private static BlockState terraceEdge(int along, int dy) {
-		if (along % BAY == 0) {
+		if (along % TERRACE_BAY == 0) {
 			return GREY;
 		}
 		if (dy == FLOOR_H - 1) {
 			return SPRUCE;
 		}
-		int j = along % BAY;
-		if (dy == j || dy == BAY - j) {
+		// thin bars rising across the 5 cells between the columns (an X is not readable in blocks at this size)
+		int j = along % TERRACE_BAY - 1;
+		if (dy == 1 + j * 2 / 4 || dy == 3 - j * 2 / 4) {
 			return BRACE;
 		}
 		return dy == 1 ? GLASS : AIR;
