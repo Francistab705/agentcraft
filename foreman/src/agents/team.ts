@@ -891,6 +891,7 @@ export class TeamBackend implements Backend {
     s.updatedAt = Date.now();
     if (stats) {
       s.turns += stats.numTurns ?? 0;
+      let slice = 0;
       if (typeof stats.costUsd === 'number') {
         // total_cost_usd is cumulative per session (resumes continue from the saved total)
         const prev = this.lastCost.get(sessionId) ?? s.costUsd;
@@ -898,7 +899,9 @@ export class TeamBackend implements Backend {
         this.lastCost.set(sessionId, stats.costUsd);
         s.costUsd = Math.max(s.costUsd, stats.costUsd);
         this.fm.setStatus({ costUsd: Math.round(((this.fm.status.costUsd ?? 0) + delta) * 1000) / 1000 });
+        slice = delta;
       }
+      this.fm.usage.record({ ts: Date.now(), agent: key.split(':')[0] ?? key, key, model, costUsd: slice, turns: stats.numTurns ?? 0 });
       s.lastResult = stats.subtype;
     }
     this.fm.store.markDirty();

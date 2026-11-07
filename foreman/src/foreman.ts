@@ -28,6 +28,7 @@ import type {
 } from './protocol.js';
 import { RepoError, RepoManager } from './repos.js';
 import { Store } from './store.js';
+import { UsageLedger } from './usage.js';
 import { TaskError, TaskGraph } from './taskgraph.js';
 import { setUserName, userName } from './user.js';
 import { truncate } from './util/text.js';
@@ -74,6 +75,8 @@ export class Foreman {
   readonly decisions: DecisionQueue;
   readonly repos: RepoManager;
   readonly notifier: Notifier;
+  /** timestamped cost of every agent turn: the source for the usage dashboard and board */
+  readonly usage: UsageLedger;
   readonly log: Logger;
   readonly cast: CastMember[];
   backend: Backend | undefined;
@@ -89,6 +92,9 @@ export class Foreman {
     this.config = opts.config;
     this.log = opts.logger ?? consoleLogger('foreman', { debug: opts.config.debug, quiet: opts.config.quiet });
     this.store = new Store(opts.config.dataDir);
+    const ledgerFile = path.join(opts.config.dataDir, 'usage.jsonl');
+    this.usage = new UsageLedger(ledgerFile);
+    if (!this.usage.exists) this.usage.backfill(this.store.data.sessions);
     const now = opts.now ?? Date.now;
     this.ctx = { store: this.store, emit: (m) => this.emit(m), now, log: this.log };
     this.tasks = new TaskGraph(this.ctx);
