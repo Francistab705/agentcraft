@@ -33,14 +33,14 @@ final class OlRoyBuilder {
 		{51.49, 4.95}, {89.16, 5.16}, {89.0, 32.04}, {93.45, 32.07}, {93.32, 53.89}, {50.34, 53.63}, {47.43, 53.56}, {34.3, 53.53},
 	};
 	private static final int W = 94;
-	private static final int D = 54;
+	static final int D = 54;
 
 	/**
 	 * World position of the footprint's south-west corner: on the flat plain south of the lake (see the
 	 * terrain survey in ol-roy/notes.md), well east of the studio's site box (x up to 46).
 	 */
-	private static final int OX = 200;
-	private static final int OZ = 84;
+	static final int OX = 200;
+	static final int OZ = 84;
 	/** Flat pad: the building plus 12 blocks around it and a 62-block lawn/pond/bluff strip to the south. */
 	private static final int CORE_X0 = OX - 12;
 	private static final int CORE_X1 = OX + W - 1 + 12;
@@ -59,7 +59,7 @@ final class OlRoyBuilder {
 	private static final int BZ = PZ + 18;
 	private static final int BLUFF_TOP = StudioHqBuilder.GROUND + 13;
 
-	private static final int GROUND = StudioHqBuilder.GROUND;
+	static final int GROUND = StudioHqBuilder.GROUND;
 	/** Floor to floor in blocks: about 4 clear above a 1-block slab (the real building is about 4.3 m floor to floor). */
 	private static final int FLOOR_H = 5;
 	private static final int FLOORS = 4;
@@ -263,51 +263,22 @@ final class OlRoyBuilder {
 		return dy == 1 ? GLASS : AIR;
 	}
 
-	/**
-	 * First-floor interior, visual only (no agent anchors yet): a parquet lobby behind the entrance with
-	 * a split reception desk, and rows of desks with chairs across the east wing.
-	 */
+	/** First-floor interior: see {@link OlRoyInterior}. */
 	private static void interior(Plan p, boolean[][] in) {
-		BlockState parquet = StudioHqBuilder.PARQUET;
-		BlockState deskBody = Blocks.DARK_OAK_PLANKS.defaultBlockState();
-		BlockState deskTop = Blocks.DARK_OAK_SLAB.defaultBlockState();
-		BlockState chair = Blocks.SPRUCE_STAIRS.defaultBlockState();
-		int y = GROUND + 1;
-		for (int cy = 1; cy <= 16; cy++) {
-			for (int cx = 14; cx <= 36; cx++) {
-				if (deep(in, cx, cy, 1)) {
-					p.set(OX + cx, GROUND, rowZ(cy), parquet);
-				}
-			}
-		}
-		// reception desk in two halves, leaving the straight path from the entrance (cx 24-26) clear
-		for (int cx = 19; cx <= 31; cx++) {
-			if (cx >= 24 && cx <= 26) {
-				continue;
-			}
-			p.set(OX + cx, y, rowZ(9), deskBody);
-			p.set(OX + cx, y + 1, rowZ(9), deskTop);
-		}
-		int[] rows = {10, 14, 18, 22, 26, 36, 40, 44, 48};
-		for (int cy : rows) {
-			for (int cx = 54; cx <= 86; cx += 4) {
-				if (deep(in, cx, cy, 2) && deep(in, cx + 2, cy, 2) && deep(in, cx + 1, cy + 1, 2)) {
-					for (int k = 0; k < 3; k++) {
-						p.set(OX + cx + k, y, rowZ(cy), deskTop);
-					}
-					p.set(OX + cx + 1, y, rowZ(cy + 1), chair);
-				}
-			}
-		}
+		new OlRoyInterior(p, in).build();
+	}
+
+	static BlockState PARQUET() {
+		return StudioHqBuilder.PARQUET;
 	}
 
 	/** World z of footprint row cy (north is up in the footprint and -z in the world). */
-	private static int rowZ(int cy) {
+	static int rowZ(int cy) {
 		return OZ + (D - 1 - cy);
 	}
 
 	/** True when every cell within r of (cx, cy) is inside the footprint. */
-	private static boolean deep(boolean[][] in, int cx, int cy, int r) {
+	static boolean deep(boolean[][] in, int cx, int cy, int r) {
 		for (int dy = -r; dy <= r; dy++) {
 			for (int dx = -r; dx <= r; dx++) {
 				if (out(in, cx + dx, cy + dy)) {
@@ -425,7 +396,7 @@ final class OlRoyBuilder {
 		return floor > 0 && dy == 1 ? GREY : GLASS;
 	}
 
-	private static boolean out(boolean[][] in, int x, int y) {
+	static boolean out(boolean[][] in, int x, int y) {
 		return x < 0 || y < 0 || x >= W || y >= D || !in[y][x];
 	}
 }
