@@ -65,6 +65,9 @@ final class OlRoyBuilder {
 	private static final int FLOORS = 4;
 	/** Bay spacing of the brick piers, in blocks. */
 	private static final int BAY = 4;
+	/** The roof terrace: the top floor's south-west corner, cx and cy 0..TERRACE, is cut back and left open. */
+	private static final int TERRACE = 11;
+	private static final BlockState BRACE = Blocks.IRON_BARS.defaultBlockState();
 
 	private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 	private static final BlockState PLATE = Blocks.CONCRETE.pick(DyeColor.LIGHT_GRAY).defaultBlockState();
@@ -186,11 +189,21 @@ final class OlRoyBuilder {
 				for (int f = 0; f < FLOORS; f++) {
 					int base = GROUND + f * FLOOR_H;
 					p.set(wx, base, wz, PLATE);
+					boolean top = f == FLOORS - 1;
+					boolean innerV = top && cx == TERRACE + 1 && cy <= TERRACE + 1;
+					boolean innerH = top && cy == TERRACE + 1 && cx <= TERRACE + 1;
+					if (innerV || innerH) {
+						boolean innerPier = (innerV && cy % BAY == 0) || (innerH && cx % BAY == 0);
+						for (int dy = 1; dy < FLOOR_H; dy++) {
+							p.set(wx, base + dy, wz, innerPier ? BRICK : GLASS);
+						}
+					}
 					if (!wall) {
 						continue;
 					}
+					boolean cut = top && cx <= TERRACE && cy <= TERRACE;
 					for (int dy = 1; dy < FLOOR_H; dy++) {
-						p.set(wx, base + dy, wz, pier ? BRICK : facade(f, dy));
+						p.set(wx, base + dy, wz, cut ? terraceEdge(cx, cy, dy) : pier ? BRICK : facade(f, dy));
 					}
 				}
 				p.set(wx, roofY, wz, PLATE);
@@ -199,6 +212,7 @@ final class OlRoyBuilder {
 				}
 			}
 		}
+		details(p, in, roofY);
 		p.settleGrass();
 		Plan.Stats st = p.apply(level, null, true);
 		// the plan sets water without waking the fluid engine: tick the basin so it spills over the lip
@@ -210,6 +224,57 @@ final class OlRoyBuilder {
 		AgentCraft.LOGGER.info("Ol'Roy: planned and applied {} cells ({} changed, {} connections) in {} ms", st.cells(), st.changed(), st.connected(),
 			(System.nanoTime() - t0) / 1_000_000);
 		return String.format(Locale.ROOT, "%d blocks updated", st.changed() + st.connected());
+	}
+
+	/**
+	 * The open outer edge of the roof terrace: grey columns every 4 blocks, X-bracing of thin bars
+	 * between them, and a glass guard at floor level.
+	 */
+	private static BlockState terraceEdge(int cx, int cy, int dy) {
+		boolean south = cy == 0;
+		int along = south ? cx : cy;
+		if (along % BAY == 0 || (south && cx == 0) || (cx == 0 && cy == 0)) {
+			return GREY;
+		}
+		int j = along % BAY;
+		if (dy == j || dy == BAY - j) {
+			return BRACE;
+		}
+		return dy == 1 ? GLASS : AIR;
+	}
+
+	/** Entrance door, canopy over the lawn side, and the rooftop mechanical boxes. */
+	private static void details(Plan p, boolean[][] in, int roofY) {
+		// entrance: a 3-wide, 3-high opening in the ground-floor glass at the middle of the west wing's front
+		for (int cx = 24; cx <= 26; cx++) {
+			for (int dy = 1; dy <= 3; dy++) {
+				p.set(OX + cx, GROUND + dy, OZ + (D - 1), AIR);
+			}
+		}
+		// canopy: a flat dark roof 3 blocks deep along the front of the west wing, on columns at its edge
+		for (int cx = 6; cx <= 46; cx++) {
+			for (int k = 1; k <= 3; k++) {
+				p.set(OX + cx, GROUND + 4, OZ + (D - 1) + k, GREY);
+			}
+		}
+		for (int cx = 6; cx <= 46; cx += 10) {
+			for (int dy = 1; dy <= 3; dy++) {
+				p.set(OX + cx, GROUND + dy, OZ + (D - 1) + 3, GREY);
+			}
+		}
+		// rooftop mechanical boxes, set back from the edge: x0, y0, x1, y1, height
+		int[][] boxes = {{22, 18, 44, 36, 3}, {52, 20, 66, 34, 3}, {72, 10, 84, 24, 2}};
+		for (int[] b : boxes) {
+			for (int cy = b[1]; cy <= b[3]; cy++) {
+				for (int cx = b[0]; cx <= b[2]; cx++) {
+					if (in[cy][cx]) {
+						for (int h = 1; h <= b[4]; h++) {
+							p.set(OX + cx, roofY + h, OZ + (D - 1 - cy), GREY);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/** 1 on the flat pad, easing to 0 over {@link #SKIRT} blocks outside it. */
