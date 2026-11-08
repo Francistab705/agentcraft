@@ -40,8 +40,8 @@ export interface ClaudeConfig {
   leadReadCommands: string[];
 }
 
-export type EngineName = 'claude' | 'codex';
-export const ENGINE_NAMES: readonly EngineName[] = ['claude', 'codex'];
+export type EngineName = 'claude' | 'codex' | 'hermes';
+export const ENGINE_NAMES: readonly EngineName[] = ['claude', 'codex', 'hermes'];
 
 /** Codex engine (`codex app-server`): models and effort default to your Codex config. */
 export interface CodexConfig {
@@ -52,6 +52,17 @@ export interface CodexConfig {
   /** model_reasoning_effort for workers / the lead (low, medium, high, xhigh...) */
   effort?: string;
   leadEffort?: string;
+}
+
+/**
+ * Hermes engine (`hermes acp`): the user's own Hermes, reached through the Agent Client Protocol.
+ * Agent sessions start in Hermes' safe mode (none of the user's config, memory, plugins or MCP servers).
+ */
+export interface HermesConfig {
+  /** the hermes CLI (default: `hermes` on PATH) */
+  path?: string;
+  model?: string;
+  provider?: string;
 }
 
 /** Which engine runs the lead, the workers, and per-agent exceptions (`--engines kit=codex`). */
@@ -105,6 +116,7 @@ export interface Config {
   /** team settings (workers, CI, review, lead read commands) and the Claude engine's options */
   claude: ClaudeConfig;
   codex: CodexConfig;
+  hermes: HermesConfig;
   engines: EngineChoice;
   sim: SimConfig;
 }
@@ -207,7 +219,7 @@ export const KNOWN_FLAGS = new Set([
   'lead-model', 'worker-model', 'effort', 'lead-effort', 'max-turns', 'max-turns-lead', 'max-turns-worker',
   'max-concurrent', 'ci', 'max-budget', 'resume', 'lead-review', 'speed', 'seed', 'showcase', 'auto-answer',
   'ambient', 'lead-read-commands', 'lead-engine', 'worker-engine', 'engines', 'codex-path', 'codex-model', 'codex-lead-model',
-  'codex-worker-model', 'codex-effort', 'codex-lead-effort',
+  'codex-worker-model', 'codex-effort', 'codex-lead-effort', 'hermes-path', 'hermes-model', 'hermes-provider',
 ]);
 
 function engineName(v: unknown, d: EngineName, what: string): EngineName {
@@ -250,6 +262,7 @@ export function loadConfig(argv: string[], env: NodeJS.ProcessEnv = process.env)
   const fileClaude = (file.claude ?? {}) as Record<string, unknown>;
   const fileSim = (file.sim ?? {}) as Record<string, unknown>;
   const fileCodex = (file.codex ?? {}) as Record<string, unknown>;
+  const fileHermes = (file.hermes ?? {}) as Record<string, unknown>;
   const pick = (k: string, envKey?: string): unknown => flags[k] ?? (envKey ? env[envKey] : undefined) ?? file[k];
 
   const backendRaw = String(pick('backend', 'AGENTCRAFT_BACKEND') ?? 'claude');
@@ -317,6 +330,11 @@ export function loadConfig(argv: string[], env: NodeJS.ProcessEnv = process.env)
       workerModel: str(flags['codex-worker-model']) ?? str(flags['codex-model']) ?? str(fileCodex.workerModel) ?? str(fileCodex.model),
       effort: str(flags['codex-effort']) ?? str(fileCodex.effort),
       leadEffort: str(flags['codex-lead-effort']) ?? str(flags['codex-effort']) ?? str(fileCodex.leadEffort) ?? str(fileCodex.effort),
+    },
+    hermes: {
+      path: str(flags['hermes-path']) ?? str(env.AGENTCRAFT_HERMES_PATH) ?? str(fileHermes.path),
+      model: str(flags['hermes-model']) ?? str(env.AGENTCRAFT_HERMES_MODEL) ?? str(fileHermes.model),
+      provider: str(flags['hermes-provider']) ?? str(env.AGENTCRAFT_HERMES_PROVIDER) ?? str(fileHermes.provider),
     },
     engines: {
       lead: engineName(pick('lead-engine', 'AGENTCRAFT_LEAD_ENGINE') ?? (file.engines as Record<string, unknown> | undefined)?.lead, backend === 'codex' ? 'codex' : 'claude', 'lead engine'),
@@ -387,7 +405,7 @@ usage: npm run start -- [options]
 
  codex engine (--backend codex, or mixed teams)
   auth: your Codex login (\`codex login\`: ChatGPT or an OpenAI API key)
-  --lead-engine claude|codex / --worker-engine claude|codex
+  --lead-engine claude|codex|hermes / --worker-engine claude|codex|hermes
                            mix engines (default: the backend's), e.g. a Claude lead with Codex workers
   --engines <agent=engine,...>  per agent, e.g. kit=codex,wren=claude (env AGENTCRAFT_ENGINES)
   --codex-path <path>      the codex CLI (default: on PATH, else the Codex desktop app's)
@@ -396,4 +414,10 @@ usage: npm run start -- [options]
   --codex-effort <e>       reasoning effort (low|medium|high|xhigh...; default: your Codex config's)
   Codex agents get none of your own MCP servers, plugins, web search or apps; every command and
   out-of-worktree edit goes through the same policy and in-game permission prompts.
+
+ hermes engine (--worker-engine hermes, --engines wren=hermes; the Hermes gateway must be running)
+  --hermes-path <path>     the hermes CLI (default: on PATH; env AGENTCRAFT_HERMES_PATH)
+  --hermes-model <m>       model (default gpt-5.6-sol) / --hermes-provider <p> (default openai-codex)
+  Hermes agents start in Hermes' safe mode: none of your Hermes config, memory, plugins or MCP servers.
+  Hermes asks before file edits and risky commands, but its terminal is NOT checked by AgentCraft's policy.
 `;
