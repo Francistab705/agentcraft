@@ -70,8 +70,9 @@ final class OlRoyBuilder implements HqBuilder {
 	private static final int SKIRT = 16;
 	/** Highest water surface block in the pond (sea level 63 means water fills up to y=62; the pond sits 1 below the lawn). */
 	private static final int POND_TOP = 63;
-	private static final int PX = OX + 47;
-	private static final int PZ = OZ + D + 22;
+	/** The pond and the rock sit on the entrance's centre line (the door is at OX + 25), south of the forecourt and its pier. */
+	private static final int PX = OX + 25;
+	private static final int PZ = OZ + D + 32;
 	private static final int PRX = 26;
 	private static final int PRZ = 15;
 	/** Bluff centre: its north face is the waterfall wall, facing the pond. */
@@ -251,6 +252,7 @@ final class OlRoyBuilder implements HqBuilder {
 		}
 		interior(p, in, anchors);
 		details(p, in, roofY);
+		OlRoyEntrance.build(p);
 		p.settleGrass();
 		Plan.Stats st = p.apply(level, null, true);
 		// the plan sets water without waking the fluid engine: tick the basin so it spills over the lip
@@ -283,9 +285,10 @@ final class OlRoyBuilder implements HqBuilder {
 		return dy == 1 ? GLASS : AIR;
 	}
 
-	/** First-floor interior: see {@link OlRoyInterior}. */
+	/** Ground-floor interior ({@link OlRoyInterior}) and the second-floor Mission Control ({@link OlRoyMissionControl}). */
 	private static void interior(Plan p, boolean[][] in, Anchors.Builder anchors) {
 		new OlRoyInterior(p, in, anchors).build();
+		new OlRoyMissionControl(p, in).build();
 	}
 
 	static BlockState PARQUET() {

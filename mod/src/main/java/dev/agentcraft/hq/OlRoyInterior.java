@@ -119,7 +119,7 @@ final class OlRoyInterior {
 		lounge();
 		cafe();
 		gameCorner();
-		a.bounds(OlRoyBuilder.OX + 1, G, OlRoyBuilder.OZ + 1, OlRoyBuilder.OX + 92, G + 10, OlRoyBuilder.OZ + 52);
+		a.bounds(OlRoyBuilder.OX + 1, G, OlRoyBuilder.OZ + 1, OlRoyBuilder.OX + 92, G + 20, OlRoyBuilder.OZ + 52);
 		a.spot(AnchorNames.ENTRANCE, OlRoyBuilder.OX + 25, FEET, rz(1), 180);
 		a.put(AnchorNames.SPAWN, wx(25.5), FEET, rz(2) + 0.5, 180, 0);
 	}
@@ -136,15 +136,6 @@ final class OlRoyInterior {
 			}
 			put(cx, 1, 9, desk);
 			put(cx, 2, 9, top);
-		}
-		// planters either side of the door: moss, ferns and a few flowers
-		for (int side = 0; side < 2; side++) {
-			int x0 = side == 0 ? 17 : 29;
-			box(x0, 2, x0 + 3, 3, 1, 1, b(Blocks.MOSS_BLOCK));
-			for (int cx = x0; cx <= x0 + 3; cx++) {
-				put(cx, 2, 2, b(Blocks.FERN));
-				put(cx, 2, 3, (cx + side) % 2 == 0 ? b(Blocks.CORNFLOWER) : b(Blocks.SHORT_GRASS));
-			}
 		}
 	}
 
