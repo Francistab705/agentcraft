@@ -1,8 +1,10 @@
 package dev.agentcraft.hq;
 
 import dev.agentcraft.block.ModBlocks;
+import dev.agentcraft.block.LampStatus;
 import dev.agentcraft.block.MonitorBlock;
 import dev.agentcraft.block.PanelBlock;
+import dev.agentcraft.block.StatusLampBlock;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
@@ -85,6 +87,7 @@ final class OlRoyMissionControl {
 		hall();
 		screens();
 		stair();
+		consoles();
 	}
 
 	/** Floor, the cut-away ceiling, the wall ring, lights and the coloured floor stripes for the future console rows. */
@@ -138,6 +141,39 @@ final class OlRoyMissionControl {
 		// side walls: the screens run along z, so they are placed by cy
 		sideScreen(Direction.EAST, X0, 24, 37, 3, 7, "tasks");
 		sideScreen(Direction.WEST, X1, 24, 37, 3, 7, "usage");
+	}
+
+	/**
+	 * The agent consoles: three rows facing the main screen (on the stripes at cy 22, 29 and 36), two consoles to a
+	 * row with the middle aisle (cx 22..29, in line with the stair) kept open. Each is a desk 9 wide with a screen
+	 * 9 x 3 on it (three times the area of a desk monitor), bound to one agent, a status lamp above it, and a seat
+	 * in front. Agents fill the rows in desk order. The screens face south, toward the operator and the entrance.
+	 */
+	private void consoles() {
+		int[] rowsY = {22, 29, 36};
+		int[] starts = {13, 30};
+		java.util.List<String> ids = StudioHqBuilder.deskIds();
+		BlockState desk = St.slab(Blocks.DARK_OAK_SLAB, true);
+		int i = 0;
+		for (int row = 0; row < 3; row++) {
+			for (int start : starts) {
+				if (i >= ids.size()) {
+					return;
+				}
+				String id = ids.get(i++);
+				int cy = rowsY[row];
+				for (int cx = start; cx <= start + 8; cx++) {
+					put(cx, 1, cy, desk);
+					for (int dy = 2; dy <= 4; dy++) {
+						put(cx, dy, cy, monitor(Direction.SOUTH));
+						bind(cx, dy, cy, id);
+					}
+				}
+				put(start + 4, 5, cy, ModBlocks.STATUS_LAMP.defaultBlockState().setValue(StatusLampBlock.STATUS, LampStatus.IDLE));
+				bind(start + 4, 5, cy, "agent:" + id);
+				put(start + 4, 1, cy - 1, Blocks.DARK_OAK_STAIRS.defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, Direction.SOUTH));
+			}
+		}
 	}
 
 	private BlockState monitor(Direction facing) {
